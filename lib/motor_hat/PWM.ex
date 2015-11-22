@@ -81,7 +81,7 @@ defmodule MotorHat.PWM do
 
     prescale_val = Float.floor(prescale_val + 0.05) # round to whole number 
 
-    old_mode1 = I2c.write_read state.i2c_pid,<< @mode1 >>, 1
+    old_mode1 = I2c.write_read state.i2c_pid, << @mode1 >>, 1
     new_mode1 = (old_mode1 &&& 0x7f) ||| 0x10 #set sleep bit, and clears reset bit if set
 
     # prescale has to be set after sleep is set
