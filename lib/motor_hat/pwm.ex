@@ -1,4 +1,4 @@
-defmodule MotorHat.PWM do
+defmodule MotorHat.Pwm do
   use GenServer
   use Bitwise
 
