@@ -32,7 +32,7 @@ defmodule MotorHat.DcMotor do
     GenServer.start_link(__MODULE__, state, [])
   end
 
-  def run(pid, dir=:foward) do
+  def run(pid, dir=:forward) do
     GenServer.call pid, {:set_direction, dir}
   end
 
@@ -44,7 +44,7 @@ defmodule MotorHat.DcMotor do
     GenServer.call pid, {:set_direction, dir}
   end
 
-  def set_speed(pid, val) when is_integer(val) and val < 256 and val > 0 do
+  def set_speed(pid, val) when is_integer(val) and val < 256 and val >= 0 do
     GenServer.call pid, {:set_speed, val}
   end
 
@@ -53,22 +53,30 @@ defmodule MotorHat.DcMotor do
     {:ok, state}
   end
 
-  def handle_call({:set_direction, :foward}, _from, %State{pwm_pid: pid, pin_one: one, pin_two: two}) do
+  def handle_call({:set_direction, :forward}, _from, state=%State{pwm_pid: pid, pin_one: one, pin_two: two}) do
     Pwm.set_pwm pid, one, 4096, 0
     Pwm.set_pwm pid, two, 0, 4096
+
+    {:reply, :ok, state}
   end
 
-  def handle_call({:set_direction, :backward}, _from, %State{pwm_pid: pid, pin_one: one, pin_two: two}) do
+  def handle_call({:set_direction, :backward}, _from, state=%State{pwm_pid: pid, pin_one: one, pin_two: two}) do
     Pwm.set_pwm pid, one, 0, 4096
     Pwm.set_pwm pid, two, 4096, 0
+
+    {:reply, :ok, state}
   end
 
-  def handle_call({:set_direction, :release}, _from, %State{pwm_pid: pid, pin_one: one, pin_two: two}) do
+  def handle_call({:set_direction, :release}, _from, state=%State{pwm_pid: pid, pin_one: one, pin_two: two}) do
     Pwm.set_pwm pid, one, 0, 0
     Pwm.set_pwm pid, two, 0, 0
+
+    {:reply, :ok, state}
   end
 
-  def handle_call({:set_speed, val}, _from, %State{pwm_pid: pid, pin_pwm: pwm}) when is_integer(val) and val < 256 and val > 0 do
+  def handle_call({:set_speed, val}, _from, state=%State{pwm_pid: pid, pin_pwm: pwm}) when is_integer(val) and val < 256 and val >= 0 do
     Pwm.set_pwm pid, pwm, 0, val * 16
+
+    {:reply, :ok, state}
   end
 end
