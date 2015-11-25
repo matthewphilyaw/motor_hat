@@ -83,7 +83,7 @@ defmodule MotorHat do
     run_motors [m1], :forward
     run_motors [m4], :backward
 
-    Logger.debug "m1 forward, m4 backward going from max to min"
+    Logger.debug "m1 forward, m4 backward going from min to max"
     set_speed_range 0..255, motors, 50 
     set_speed motors, 0
 
