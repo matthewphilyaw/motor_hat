@@ -49,7 +49,7 @@ defmodule MotorHat do
 
   # Private
 
-  def validate_config(motor_config = {:dc, motors}) do
+  defp validate_config(motor_config = {:dc, motors}) do
     results = [is_valid_count(Enum.count(motors))]
     results = [no_dup_motors(motors) | results]
     results = results ++ Enum.map motors, fn m -> valid_motor_position m end
