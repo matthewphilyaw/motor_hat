@@ -3,7 +3,11 @@ defmodule MotorHat.Mixfile do
 
   def project do
     [app: :motor_hat,
-     version: "0.0.1",
+     name: "motor hat",
+     source_url: "https://github.com/matthewphilyaw/motor_hat",
+     description: "elixir implementation of the motor_hat lib by adafruit for
+     the board by the same name",
+     version: "0.5.0",
      elixir: "~> 1.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
