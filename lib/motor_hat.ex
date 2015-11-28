@@ -1,126 +1,93 @@
 defmodule MotorHat do
+  use GenServer
   require Logger
   alias MotorHat.Pwm
   alias MotorHat.DcMotor
 
-  def start_pwm do
-    ret = {:ok, pwm_pid} = Pwm.start_link "i2c-1", 0x60
-    Pwm.set_pwm_freq pwm_pid, 1600
-
-    ret
+  defmodule State do
+    defstruct devname: nil, address: nil, pwm_pid: nil, motors: %{}
   end
 
-  def start_motors(motors, pwm_pid) do
-    Enum.map motors, fn m ->
+  def start_link(devname, address, motor_config, pwm_freq \\ 1600) do
+    {:ok, motor_config} = validate_config motor_config
+    GenServer.start_link(__MODULE__, [devname, address, motor_config, pwm_freq])
+  end
+
+  def get_motor(pid, motor) do
+    GenServer.call pid, {:get_motor, motor}
+  end
+
+  def release_all_motors(pid) do
+    GenServer.call pid, :release_all_motors
+  end
+
+  # Call Backs
+
+  def init([devname, address, motor_config, pwm_freq]) do
+    {:ok, pwm_pid} = Pwm.start_link devname, address
+    Pwm.set_pwm_freq pwm_pid, pwm_freq
+
+    motor_map = start_motors motor_config, pwm_pid
+    {:ok, %State{ devname: devname, address: address, pwm_pid: pwm_pid, motors: motor_map}}
+  end
+
+  def handle_call({:get_motor, pos}, _from, state=%State{motors: motors}) do
+    case motors[pos] do
+      nil -> {:reply, {:error, :no_motor_found, "no motor under that key"}, state}
+      _ -> {:reply, {:ok, motors[pos]}, state}
+    end
+  end
+
+  def handle_call(:release_all_motors, _from, state=%State{pwm_pid: pwm_pid}) do
+    Pwm.set_all_pwm pwm_pid, 0, 0
+
+    {:reply, :ok, state}
+  end
+
+  # Private
+
+  def validate_config(motor_config = {:dc, motors}) do
+    results = [is_valid_count(Enum.count(motors))]
+    results = [no_dup_motors(motors) | results]
+    results = results ++ Enum.map motors, fn m -> valid_motor_position m end
+
+    errors = Enum.filter results, &(case &1 do :ok -> false; {:error, _, _} -> true end)
+
+    case Enum.count(errors) > 0 do
+      false -> {:ok, motor_config}
+      true -> {:error, errors}
+    end
+  end
+
+  defp is_valid_count(count) when is_integer(count) and count < 1 or count > 4 do
+    {:error, :invalid_count, "please provide between :m1 and :m4 dc motor positions"}
+  end
+
+  defp is_valid_count(_count) do
+    :ok
+  end
+
+  defp no_dup_motors(motors) do
+    case motors == Enum.uniq motors do
+      true -> :ok
+      false -> {:error, :dup_motors, "please provide a unique list of motor positions"}
+    end
+  end
+
+  defp valid_motor_position(motor) do
+    case motor do
+      :m1 -> :ok
+      :m2 -> :ok
+      :m3 -> :ok
+      :m4 -> :ok
+      _ -> {:error, :invalid_position, "invalid motor position #{inspect motor}"}
+    end 
+  end
+
+  defp start_motors({:dc, motors}, pwm_pid) do
+    Enum.reduce motors, %{}, fn(m, map) ->
       {:ok, motor_pid} = DcMotor.start_link pwm_pid, m
-      motor_pid
-    end 
-  end
-
-  def run_motors(motors, dir) do
-    Enum.each motors, &(DcMotor.run(&1, dir))
-  end
-
-  def set_speed(motors, speed \\ 0) do
-    Enum.each motors, &(DcMotor.set_speed(&1, speed))
-  end
-
-  def set_speed_range(range, motors, delay \\ 0) do
-    Enum.each range, fn x ->
-      Enum.each motors, &(DcMotor.set_speed(&1, x))
-      :timer.sleep delay
-    end 
-  end
-
-  def demo_m1_m4 do
-    # pwm is basically the motor_hat board at it's core
-    # it is the module that does all the I2c stuff to set channels
-    {:ok, pwm_pid} = start_pwm
-    
-    # each motor is a gen_server, so we keep the pids
-    # and give each motor the pwm pid so it can talk ot the board
-    motors = start_motors [:m1, :m4], pwm_pid
-
-    # only sets the direction to run, doesn't do anything else
-    run_motors motors, :forward
-
-    # now lets slowly speed up, motors can run from 0 to 255
-    # and we will sleep for 50ms between each step
-    Logger.debug "m1, m4 going forward min to max"
-    set_speed_range 0..255, motors, 50
-    
-    # put the brakes on
-    set_speed motors, 0
-
-    # a moment of pause for the next phase :) haha.
-    # yes arguable not needed comment.
-    :timer.sleep 250
-
-    # now lets go fast and slow down!
-
-    Logger.debug "m1, m4 going forward going  max to min"
-    set_speed_range 255..0, motors, 50 
-    set_speed motors, 0
-
-    # reverse
-
-    run_motors motors, :backward
-
-    Logger.debug "m1, m4 going backward going min to max"
-    set_speed_range 0..255, motors, 50 
-    set_speed motors, 0
-
-    :timer.sleep 250
-
-    Logger.debug "m1, m4 going backward going from max to min"
-    set_speed_range 255..0, motors, 50 
-    set_speed motors, 0
-
-
-    # one forward and one back!
-    [m1, m4] = motors
-
-    run_motors [m1], :forward
-    run_motors [m4], :backward
-
-    Logger.debug "m1 forward, m4 backward going from min to max"
-    set_speed_range 0..255, motors, 50 
-    set_speed motors, 0
-
-    :timer.sleep 250
-
-    Logger.debug "m1 forward, m4 backward going from max to min"
-    set_speed_range 255..0, motors, 50 
-    set_speed motors, 0
-
-    # now one forward one back and one speed up to max
-    # one slow down to brake
-
-    Logger.debug "m1 forward min - max, m4 backward max to min seq"
-    set_speed_range 0..255, [m1], 50
-    set_speed_range 255..0, [m4], 50
-
-    set_speed motors, 0
-
-    :timer.sleep 250
-
-    # Anyone care to guess why that didn't happen concurrently :)
-    # Lets see if tasks can help us here... 
-    # also note that the motors don't turn off till told
-    # so the example above did some weird stuff keeping the max
-    # motor running
-
-    Logger.debug "m1 forward min - max, m4 backward max to min concurrently"
-    m1t = Task.async fn -> set_speed_range 0..255, [m1], 50 end
-    m4t = Task.async fn -> set_speed_range 255..0, [m4], 50 end
-
-    Task.await m1t, 1 * 60 * 1000
-    Task.await m4t, 1 * 60 * 1000
-
-    set_speed motors, 0
-    # that's better :)
-
-    Logger.debug "release m1, m4"
-    run_motors motors, :release
+      Map.put(map, m, motor_pid)
+    end
   end
 end
