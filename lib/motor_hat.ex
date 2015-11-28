@@ -5,7 +5,7 @@ defmodule MotorHat do
   alias MotorHat.DcMotor
 
   defmodule State do
-    defstruct devname: nil, address: nil, pwm_pid: nil, motors: %{}
+    defstruct devname: nil, address: nil, pwm_pid: nil, dc_motors: %{}
   end
 
   def start_link(devname, address, motor_config, pwm_freq \\ 1600) do
@@ -13,8 +13,8 @@ defmodule MotorHat do
     GenServer.start_link(__MODULE__, [devname, address, motor_config, pwm_freq])
   end
 
-  def get_motor(pid, motor) do
-    GenServer.call pid, {:get_motor, motor}
+  def get_dc_motor(pid, motor) do
+    GenServer.call pid, {:get_dc_motor, motor}
   end
 
   def release_all_motors(pid) do
@@ -28,10 +28,13 @@ defmodule MotorHat do
     Pwm.set_pwm_freq pwm_pid, pwm_freq
 
     motor_map = start_motors motor_config, pwm_pid
-    {:ok, %State{ devname: devname, address: address, pwm_pid: pwm_pid, motors: motor_map}}
+    {:ok, %State{ devname: devname, 
+                  address: address,
+                  pwm_pid: pwm_pid,
+                  dc_motors: motor_map}}
   end
 
-  def handle_call({:get_motor, pos}, _from, state=%State{motors: motors}) do
+  def handle_call({:get_dc_motor, pos}, _from, state=%State{dc_motors: motors}) do
     case motors[pos] do
       nil -> {:reply, {:error, :no_motor_found, "no motor under that key"}, state}
       _ -> {:reply, {:ok, motors[pos]}, state}
