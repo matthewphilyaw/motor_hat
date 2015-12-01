@@ -2,7 +2,10 @@ defmodule MotorHatTest do
   use ExUnit.Case
   doctest MotorHat
 
-  test "the truth" do
-    assert 1 + 1 == 2
+  # this will change over time, this is to prove that 
+  # I2cFake is being used for now
+  @tag timeout: 5 * 60 * 1000
+  test "Run demo" do
+    MotorHat.Demo.demo_m1_m4
   end
 end

@@ -1,6 +1,7 @@
 defmodule MotorHat.Pwm do
   use GenServer
   use Bitwise
+  use MotorHat.I2c
 
   # constants used to manipulate the motor_hat taken from the pyhton code
   @mode1 0x00
