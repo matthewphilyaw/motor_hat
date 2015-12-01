@@ -24,7 +24,7 @@ defmodule MotorHat.Demo do
     # pwm is basically the motor_hat board at it's core
     # it is the module that does all the I2c stuff to set channels
     {:ok, mhat} = MotorHat.start_link "i2c-1", 0x60, {:dc, [:m1, :m4]}
-    
+
     # each motor is a gen_server, so we keep the pids
     # and give each motor the pwm pid so it can talk ot the board
     {:ok, m1} = MotorHat.get_dc_motor mhat, :m1
@@ -38,7 +38,7 @@ defmodule MotorHat.Demo do
     # and we will sleep for 50ms between each step
     Logger.debug "m1, m4 going forward min to max"
     set_speed_range 0..255, motors, 50
-    
+
     # put the brakes on
     set_speed motors, 0
 
@@ -109,7 +109,6 @@ defmodule MotorHat.Demo do
     # that's better :)
 
     Logger.debug "release m1, m4"
-	
-	MotorHat.release_all_motors mhat
+    MotorHat.release_all_motors mhat
   end
 end
