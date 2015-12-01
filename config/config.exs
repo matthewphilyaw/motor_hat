@@ -3,7 +3,7 @@
 use Mix.Config
 
 # Elixir Ale is just under I2c
-config :motor_hat, i2c: I2c
+#     config :motor_hat, i2c: I2c
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
