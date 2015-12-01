@@ -1,3 +1,4 @@
+https://travis-ci.org/matthewphilyaw/motor_hat.svg
 # MotorHat
 
 Implementing the [motor_hat](https://github.com/adafruit/Adafruit-Motor-HAT-Python-Library) library in elixir for a project. Initial support will be for DC motors only, but will try to expand to a complete functional clone (no pun intended) of this library for elixir plus have a few ideas to extend it.
