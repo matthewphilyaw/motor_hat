@@ -5,8 +5,6 @@ defmodule MotorHat.Mixfile do
     [app: :motor_hat,
      name: "motor hat",
      source_url: "https://github.com/matthewphilyaw/motor_hat",
-     description: "elixir implementation of the motor_hat lib by adafruit for
-     the board by the same name",
      version: "0.5.0",
      elixir: "~> 1.1",
      build_embedded: Mix.env == :prod,
@@ -25,6 +23,23 @@ defmodule MotorHat.Mixfile do
   defp deps do
     [
       {:elixir_ale, "~> 0.4.0"}
+    ]
+  end
+
+  defp description do
+    """
+    Elixir implementation of the pyhton motor_hat library from Adafruit for there motor_hat board.
+
+    Library: https://github.com/adafruit/Adafruit-Motor-HAT-Python-Library
+    Board: https://www.adafruit.com/product/2348
+    """
+  end
+
+  defp package do
+    [
+      maintainers: ["Matthew Philyaw"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/matthewphilyaw/motor_hat"}
     ]
   end
 end
