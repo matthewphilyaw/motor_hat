@@ -2,6 +2,10 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+config :logger, :console,
+  format: "$time $metadata[$level] - $message\n",
+  metadata: [:module, :function]
+
 # Elixir Ale is just under I2c
 #     config :motor_hat, i2c: I2c
 

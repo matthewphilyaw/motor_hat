@@ -2,6 +2,7 @@ defmodule MotorHat.Pwm do
   use GenServer
   use Bitwise
   use MotorHat.I2c
+  require Logger
 
   # constants used to manipulate the motor_hat taken from the pyhton code
   @mode1 0x00
@@ -71,8 +72,9 @@ defmodule MotorHat.Pwm do
     # wake up from sleep
     # returns binary, match out the byte
     << mode1 >> = I2c.write_read pid, << @mode1 >>, 1
+    Logger.debug fn -> "mode1: #{inspect mode1}" end
     mode1 = mode1 &&& ~~~@sleep #~~~@sleep creates the bit mask to flip sleep bit
-    I2c.write pid, <<  @mode1, mode1 >>
+    I2c.write pid, << @mode1, mode1 >>
     :timer.sleep(5) #wait for oscillator
 
     state = %State{i2c_pid: pid}
@@ -84,8 +86,10 @@ defmodule MotorHat.Pwm do
 
     # round to whole number and take integer part
     prescale_val = trunc Float.floor(prescale_val + 0.05)
+    Logger.debug fn -> "prescale: #{inspect prescale_val}" end
 
     << old_mode1 >> = I2c.write_read state.i2c_pid, << @mode1 >>, 1
+    Logger.debug fn -> "old_mode1: #{inspect old_mode1}" end
     new_mode1 = (old_mode1 &&& 0x7f) ||| 0x10 #set sleep bit, and clears reset bit if set
 
     # prescale has to be set after sleep is set
@@ -123,5 +127,9 @@ defmodule MotorHat.Pwm do
   defp set_reg_word(i2c_pid, l_reg, h_reg, val) do
     I2c.write i2c_pid, << l_reg, val &&& 0xff >>
     I2c.write i2c_pid, << h_reg, val >>> 8 >>
+  end
+
+  def terminate(reason, state) do
+    Logger.debug fn -> "#{inspect reason} - #{inspect state}" end
   end
 end
