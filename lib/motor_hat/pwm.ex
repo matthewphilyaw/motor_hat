@@ -1,7 +1,6 @@
 defmodule MotorHat.Pwm do
   use GenServer
   use Bitwise
-  use MotorHat.I2c
   require Logger
 
   # constants used to manipulate the motor_hat taken from the pyhton code
@@ -26,7 +25,7 @@ defmodule MotorHat.Pwm do
   @out_drv 0x04
 
   defmodule State do
-    defstruct i2c_pid: nil
+    defstruct i2c: nil
   end
 
   #Public API ----
@@ -34,8 +33,8 @@ defmodule MotorHat.Pwm do
   @doc """ 
   Spawns process to represent the motor_hat on the raspberry pi
   """
-  def start_link(devname, address, opts \\ []) do
-    GenServer.start_link(__MODULE__, [devname, address], opts)
+  def start_link(i2c, opts \\ []) do
+    GenServer.start_link(__MODULE__, [i2c], opts)
   end
 
   def software_reset(pid) do
@@ -57,48 +56,47 @@ defmodule MotorHat.Pwm do
   #Gen Server Callbacks
 
   @doc """
-  Inialize I2c bus and PCA9685 chip
+  Inialize i2c_mod bus and PCA9685 chip
   """
-  def init([devname, address]) do
-    {:ok, pid} = I2c.start_link(devname, address)
-
+  def init([i2c={i2c_mod, i2c_pid}]) do
     # resetting mode1 reg without seting sleep and mode2
-    set_reg_word pid, @all_led_on_l, @all_led_on_h, 0
-    set_reg_word pid, @all_led_off_l, @all_led_off_h, 0
-    I2c.write pid, << @mode2, @out_drv >>
-    I2c.write pid, << @mode1, @all_call >>
+
+    set_reg_word i2c, @all_led_on_l, @all_led_on_h, 0
+    set_reg_word i2c, @all_led_off_l, @all_led_off_h, 0
+    i2c_mod.write i2c_pid, << @mode2, @out_drv >>
+    i2c_mod.write i2c_pid, << @mode1, @all_call >>
     :timer.sleep(5) #wait for oscillator
 
     # wake up from sleep
     # returns binary, match out the byte
-    << mode1 >> = I2c.write_read pid, << @mode1 >>, 1
+    << mode1 >> = i2c_mod.write_read i2c_pid, << @mode1 >>, 1
     Logger.debug fn -> "mode1: #{inspect mode1}" end
     mode1 = mode1 &&& ~~~@sleep #~~~@sleep creates the bit mask to flip sleep bit
-    I2c.write pid, << @mode1, mode1 >>
+    i2c_mod.write i2c_pid, << @mode1, mode1 >>
     :timer.sleep(5) #wait for oscillator
 
-    state = %State{i2c_pid: pid}
+    state = %State{i2c: i2c}
     {:ok, state}
   end
 
-  def handle_call({:set_pwm_freq, freq}, _from, state) do
+  def handle_call({:set_pwm_freq, freq}, _from, state=%State{i2c: {i2c_mod, i2c_pid}}) do
     prescale_val = ((250000000 / 4096) / freq) - 1.0
 
     # round to whole number and take integer part
     prescale_val = trunc Float.floor(prescale_val + 0.05)
     Logger.debug fn -> "prescale: #{inspect prescale_val}" end
 
-    << old_mode1 >> = I2c.write_read state.i2c_pid, << @mode1 >>, 1
+    << old_mode1 >> = i2c_mod.write_read i2c_pid, << @mode1 >>, 1
     Logger.debug fn -> "old_mode1: #{inspect old_mode1}" end
     new_mode1 = (old_mode1 &&& 0x7f) ||| 0x10 #set sleep bit, and clears reset bit if set
 
     # prescale has to be set after sleep is set
-    I2c.write state.i2c_pid, << @mode1, new_mode1 >>
-    I2c.write state.i2c_pid, << @prescale, prescale_val >>
-    I2c.write state.i2c_pid, << @mode1, old_mode1 >>
+    i2c_mod.write i2c_pid, << @mode1, new_mode1 >>
+    i2c_mod.write i2c_pid, << @prescale, prescale_val >>
+    i2c_mod.write i2c_pid, << @mode1, old_mode1 >>
     :timer.sleep(5)
 
-    I2c.write state.i2c_pid, << @mode1, old_mode1 &&& 0x80 >> # reset
+    i2c_mod.write i2c_pid, << @mode1, old_mode1 &&& 0x80 >> # reset
 
     {:reply, :ok, state}
   end
@@ -109,24 +107,24 @@ defmodule MotorHat.Pwm do
     l_off_chan = @led0_off_l + 4 * channel
     h_off_chan = @led0_off_h + 4 * channel
 
-    set_reg_word state.i2c_pid, l_on_chan, h_on_chan, on
-    set_reg_word state.i2c_pid, l_off_chan, h_off_chan, off
+    set_reg_word state.i2c, l_on_chan, h_on_chan, on
+    set_reg_word state.i2c, l_off_chan, h_off_chan, off
 
     {:reply, :ok, state}
   end
 
   def handle_call({:set_all_pwm, on, off}, _from, state) do
-    set_reg_word state.i2c_pid, @all_led_on_l, @all_led_on_h, on
-    set_reg_word state.i2c_pid, @all_led_off_l, @all_led_off_h, off
+    set_reg_word state.i2c, @all_led_on_l, @all_led_on_h, on
+    set_reg_word state.i2c, @all_led_off_l, @all_led_off_h, off
 
     {:reply, :ok, state}
   end
 
   #private functions
 
-  defp set_reg_word(i2c_pid, l_reg, h_reg, val) do
-    I2c.write i2c_pid, << l_reg, val &&& 0xff >>
-    I2c.write i2c_pid, << h_reg, val >>> 8 >>
+  defp set_reg_word({i2c_mod, i2c_pid}, l_reg, h_reg, val) do
+    i2c_mod.write i2c_pid, << l_reg, val &&& 0xff >>
+    i2c_mod.write i2c_pid, << h_reg, val >>> 8 >>
   end
 
   def terminate(reason, state) do
