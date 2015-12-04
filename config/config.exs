@@ -2,6 +2,13 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+config :logger, :console,
+  format: "$time $metadata[$level] - $message\n",
+  metadata: [:module, :function]
+
+# Elixir Ale is just under I2c
+#     config :motor_hat, i2c: I2c
+
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
 # file won't be loaded nor affect the parent project. For this reason,
@@ -27,4 +34,5 @@ use Mix.Config
 # Configuration from the imported file will override the ones defined
 # here (which is why it is important to import them last).
 #
-#     import_config "#{Mix.env}.exs"
+
+import_config "#{Mix.env}.exs"

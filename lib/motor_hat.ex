@@ -24,7 +24,9 @@ defmodule MotorHat do
   # Call Backs
 
   def init([devname, address, motor_config, pwm_freq]) do
-    {:ok, pwm_pid} = Pwm.start_link devname, address
+    i2c_mod = Application.get_env(:motor_hat, :i2c)
+    {:ok, i2c_pid} = i2c_mod.start_link devname, address
+    {:ok, pwm_pid} = Pwm.start_link {i2c_mod, i2c_pid}
     Pwm.set_pwm_freq pwm_pid, pwm_freq
 
     motor_map = start_motors motor_config, pwm_pid
