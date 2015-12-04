@@ -3,3 +3,8 @@
 use Mix.Config
 
 config :motor_hat, i2c: MotorHat.Test.I2cFake
+
+config :logger, :console,
+  format: "$time $metadata[$level] - $message\n",
+  level: :info,
+  metadata: [:module, :function]

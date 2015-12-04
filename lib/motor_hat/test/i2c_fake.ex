@@ -41,6 +41,10 @@ defmodule MotorHat.Test.I2cFake do
     GenServer.call pid, :get_state
   end
 
+  def clear_messages(pid) do
+    GenServer.call pid, :clear_messages
+  end
+
   def stop_server(pid) do
     GenServer.call pid, :stop_server
   end
@@ -71,6 +75,10 @@ defmodule MotorHat.Test.I2cFake do
 
   def handle_call(:get_state, _from, state) do
     {:reply, Map.from_struct(state), state}
+  end
+
+  def handle_call(:clear_messages, _from, state) do
+    {:reply, :ok, %State{state | messages: []}}
   end
 
   def handle_call(:stop_server, _from, state) do
