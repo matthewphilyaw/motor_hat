@@ -25,8 +25,8 @@ defmodule MotorHat.Test.I2cFake do
     defstruct devname: nil, address: nil, messages: nil
   end
 
-  def start_link(devname, address) do
-    GenServer.start_link(__MODULE__, [devname, address], name: I2cFake)
+  def start_link(devname, address, opts \\ []) do
+    GenServer.start_link(__MODULE__, [devname, address], opts)
   end
 
   def write(pid, message) do
