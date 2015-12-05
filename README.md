@@ -12,140 +12,31 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
   1. Add motor_hat to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:motor_hat, "~> 0.5.0"}]
+          [{:motor_hat, "~> 0.5.2"}]
         end
 
-## Demo
+## configuration
 
-Complete demo file is [here](https://github.com/matthewphilyaw/motor_hat/blob/master/lib/motor_hat/demo.ex)
+MotorHat needs to be configured before run. `config/dev.exs and config/test.exs' are good examples of how to configure the application for your project.
 
-Demo assume a motor connected to m1, and m4 on the board. [Here](https://www.youtube.com/watch?v=yyMExkCFd-g) is a link to youtube of two roomba motors running this demo
-
-### To run demo on the rapsberry pi
-
-```shell
-# Depending on your setup you may or may not need this, I run arch linux and don't run as root.
-motor_hat ➤ sudo iex -S mix
-Erlang/OTP 18 [erts-7.1] [source] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]
-
-Interactive Elixir (1.1.1) - press Ctrl+C to exit (type h() ENTER for help)
-iex(1)> MotorHat.D
-DcMotor    Demo
-iex(1)> MotorHat.Demo.demo_m1_m4
-
-22:44:36.981 [debug] m1, m4 going forward min to max
-
-22:44:51.322 [debug] m1, m4 going forward going  max to min
-
-22:45:05.417 [debug] m1, m4 going backward going min to max
-
-22:45:19.755 [debug] m1, m4 going backward going from max to min
-
-22:45:33.851 [debug] m1 forward, m4 backward going from min to max
-
-22:45:48.190 [debug] m1 forward, m4 backward going from max to min
-
-22:46:02.275 [debug] m1 forward min - max, m4 backward max to min seq
-
-22:46:29.667 [debug] m1 forward min - max, m4 backward max to min concurrently
-
-22:46:43.267 [debug] release m1, m4
-:ok
-iex(2)>
-```
-
-### The demo_m1_m4 function:
-
-```Elixir
-def demo_m1_m4 do
-  # pwm is basically the motor_hat board at it's core
-  # it is the module that does all the I2c stuff to set channels
-  {:ok, mhat} = MotorHat.start_link "i2c-1", 0x60, {:dc, [:m1, :m4]}
-
-  # each motor is a gen_server, so we keep the pids
-  # and give each motor the pwm pid so it can talk ot the board
-  {:ok, m1} = MotorHat.get_dc_motor mhat, :m1
-  {:ok, m4} = MotorHat.get_dc_motor mhat, :m4
-  motors = [m1, m4]
-
-  # only sets the direction to run, doesn't do anything else
-  run_motors motors, :forward
-
-  # now lets slowly speed up, motors can run from 0 to 255
-  # and we will sleep for 50ms between each step
-  Logger.debug "m1, m4 going forward min to max"
-  set_speed_range 0..255, motors, 50
-
-  # put the brakes on
-  set_speed motors, 0
-
-  # a moment of pause for the next phase :) haha.
-  # yes arguable not needed comment.
-  :timer.sleep 250
-
-  # now lets go fast and slow down!
-
-  Logger.debug "m1, m4 going forward going  max to min"
-  set_speed_range 255..0, motors, 50 
-  set_speed motors, 0
-
-  # reverse
-
-  run_motors motors, :backward
-
-  Logger.debug "m1, m4 going backward going min to max"
-  set_speed_range 0..255, motors, 50 
-  set_speed motors, 0
-
-  :timer.sleep 250
-
-  Logger.debug "m1, m4 going backward going from max to min"
-  set_speed_range 255..0, motors, 50 
-  set_speed motors, 0
-
-
-  # one forward and one back!
-  run_motors [m1], :forward
-  run_motors [m4], :backward
-
-  Logger.debug "m1 forward, m4 backward going from min to max"
-  set_speed_range 0..255, motors, 50 
-  set_speed motors, 0
-
-  :timer.sleep 250
-
-  Logger.debug "m1 forward, m4 backward going from max to min"
-  set_speed_range 255..0, motors, 50 
-  set_speed motors, 0
-
-  # now one forward one back and one speed up to max
-  # one slow down to brake
-
-  Logger.debug "m1 forward min - max, m4 backward max to min seq"
-  set_speed_range 0..255, [m1], 50
-  set_speed_range 255..0, [m4], 50
-
-  set_speed motors, 0
-
-  :timer.sleep 250
-
-  # Anyone care to guess why that didn't happen concurrently :)
-  # Lets see if tasks can help us here... 
-  # also note that the motors don't turn off till told
-  # so the example above did some weird stuff keeping the max
-  # motor running
-
-  Logger.debug "m1 forward min - max, m4 backward max to min concurrently"
-  m1t = Task.async fn -> set_speed_range 0..255, [m1], 50 end
-  m4t = Task.async fn -> set_speed_range 255..0, [m4], 50 end
-
-  Task.await m1t, 1 * 60 * 1000
-  Task.await m4t, 1 * 60 * 1000
-
-  set_speed motors, 0
-  # that's better :)
-
-  Logger.debug "release m1, m4"
-  MotorHat.release_all_motors mhat
-end
+``` Elixir
+config :motor_hat,
+  # module used for i2c, should be I2c for normal use
+  # MotorHat.Test.I2cFake is used for testing to mock the lib out
+  i2c: I2c,
+  boards: [ # one or more boards to configure and start
+    [ 
+      # key to use to look up board for calls like get_dc_motor which uses 
+      # this key to find the board
+      name: :mhat,
+      devname: "i2c-1", # busname, i2c-1 is common on the raspberry pi
+      address: 0x60, # address on i2c
+      # motor config may change in the future right now in only supports
+      # dc motors not entirely happy with this.
+      motor_config: {
+        :dc, # dc instead of stepper
+        [:m2, :m3] # motor positions to create, can be :m1 - :m4
+      }
+    ]
+  ]
 ```
