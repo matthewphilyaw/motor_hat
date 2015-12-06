@@ -70,7 +70,6 @@ defmodule MotorHat.Pwm do
     # wake up from sleep
     # returns binary, match out the byte
     << mode1 >> = i2c_mod.write_read i2c_pid, << @mode1 >>, 1
-    Logger.debug fn -> "mode1: #{inspect mode1}" end
     mode1 = mode1 &&& ~~~@sleep #~~~@sleep creates the bit mask to flip sleep bit
     i2c_mod.write i2c_pid, << @mode1, mode1 >>
     :timer.sleep(5) #wait for oscillator
@@ -80,14 +79,13 @@ defmodule MotorHat.Pwm do
   end
 
   def handle_call({:set_pwm_freq, freq}, _from, state=%State{i2c: {i2c_mod, i2c_pid}}) do
+    Logger.debug fn -> "setting pwm freq to: #{inspect freq}" end
     prescale_val = ((250000000 / 4096) / freq) - 1.0
 
     # round to whole number and take integer part
     prescale_val = trunc Float.floor(prescale_val + 0.05)
-    Logger.debug fn -> "prescale: #{inspect prescale_val}" end
 
     << old_mode1 >> = i2c_mod.write_read i2c_pid, << @mode1 >>, 1
-    Logger.debug fn -> "old_mode1: #{inspect old_mode1}" end
     new_mode1 = (old_mode1 &&& 0x7f) ||| 0x10 #set sleep bit, and clears reset bit if set
 
     # prescale has to be set after sleep is set

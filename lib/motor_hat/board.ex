@@ -35,17 +35,15 @@ defmodule MotorHat.Board do
   end
 
   def init([i2c_mod, board]) do
+    Logger.debug fn -> "using board config: #{inspect board}" end
+
     devname = board[:devname]
     address = board[:address]
 
     {:ok, i2c_pid} = i2c_mod.start_link devname, address
     {:ok, pwm_pid} = Pwm.start_link {i2c_mod, i2c_pid}
 
-    pwm_freq = case board[:pwm_freq] do
-      nil -> 1600
-      freq -> freq
-    end 
-
+    pwm_freq = Keyword.get(board, :pwm_freq, 1600)
     Pwm.set_pwm_freq pwm_pid, pwm_freq
 
     {:ok, motor_config} = validate_config board[:motor_config]

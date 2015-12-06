@@ -6,7 +6,7 @@ defmodule MotorHat.Supervisor do
   end
 
   def init([]) do
-    i2c_module = Application.get_env :motor_hat, :i2c
+    i2c_module = Application.get_env :motor_hat, :i2c, I2c
     boards = Application.get_env :motor_hat, :boards
 
     children = Enum.map boards, fn b ->
