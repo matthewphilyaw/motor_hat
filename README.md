@@ -62,3 +62,11 @@ config :motor_hat,
 ```
 
 i2c: allows you to swap out the I2c module which normally is the Elixir_Ale module. In this case we have redefined it to MotorHat.Test.I2cFake, which is used in the tests to mock up the I2c calls.
+
+### NOTE
+if for any reason you stop the shell using ctrl-c or ctrl-g q, the motors if running will continue to run. 
+Basically when you interact with the motor hat board you are giving it commands to run via I2c,
+which happens outside of elixir there are no continuos command sent to keep the motoring running and as long as the
+motor hat board has power it will continue to run the last command given
+
+if this happens, simply running `mix` will stop the motors as part of the inialization of the MotorHat app.
