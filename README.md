@@ -12,7 +12,7 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
   1. Add motor_hat to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:motor_hat, "~> 0.5.2"}]
+          [{:motor_hat, "~> 0.6.0"}]
         end
 
 ## configuration
