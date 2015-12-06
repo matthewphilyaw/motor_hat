@@ -17,7 +17,7 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 
 ## configuration
 
-MotorHat needs to be configured before run. `config/dev.exs and config/test.exs' are good examples of how to configure the application for your project.
+MotorHat needs to be configured before run. `config/dev.exs and config/test.exs` are good examples of how to configure the application for your project.
 
 Typical configuration
 ``` Elixir
