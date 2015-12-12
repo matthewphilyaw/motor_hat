@@ -80,7 +80,7 @@ defmodule MotorHat.Pwm do
 
   def handle_call({:set_pwm_freq, freq}, _from, state=%State{i2c: {i2c_mod, i2c_pid}}) do
     Logger.debug fn -> "setting pwm freq to: #{inspect freq}" end
-    prescale_val = ((250000000 / 4096) / freq) - 1.0
+    prescale_val = ((25000000 / 4096) / freq) - 1.0
 
     # round to whole number and take integer part
     prescale_val = trunc Float.floor(prescale_val + 0.05)
