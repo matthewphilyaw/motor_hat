@@ -5,7 +5,7 @@ defmodule MotorHat.Mixfile do
     [app: :motor_hat,
      name: "motor hat",
      source_url: "https://github.com/matthewphilyaw/motor_hat",
-     version: "0.6.0",
+     version: "0.6.1",
      elixir: "~> 1.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
