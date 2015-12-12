@@ -40,9 +40,21 @@ defmodule MotorHat.PwmTest do
     assert msgs == [
       <<0, 0>>, # last message
       <<0, 1>>,
-      <<254, 37>>, # prescale
+      <<254, 3>>, # prescale
       <<0, 17>>,
       <<0>> # first
     ]
+  end
+
+  @doc """
+  Formula according to data sheet here https://www.adafruit.com/datasheets/PCA9685.pdf is
+
+  round(clock_speed/(4096 * target_freq)) - 1)
+  """
+  test "pwm freq is calculated correctly for 1600" do
+    target_freq = 1600
+    prescale_val = trunc(Float.floor(25000000 / (4096 * target_freq) + 0.5) - 1)
+
+    assert Pwm.calc_prescale(target_freq) == prescale_val
   end
 end
